@@ -11,7 +11,7 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
--- Variables
+-- [[ VARIABLES ]] --
 _G.SpeedEnabled = false
 _G.TargetSpeed = 16
 _G.NoclipEnabled = false
@@ -28,9 +28,9 @@ local FullBeeList = {
     "Bear", "Crimson", "Cobalt", "Gummy", "Festive", "Puppy", "Photon", "Tabby", "Vicious", "Windy", "Digital"
 }
 
--- Tabs
+-- [[ TABS ]] --
 local Tab = Window:CreateTab("Main", 4483362458)
-local DetectTab = Window:CreateTab("Detector", 4483362458) -- Tab mới đây ông
+local DetectTab = Window:CreateTab("Detector", 4483362458)
 local BindTab = Window:CreateTab("Keybinds", 4483362458)
 
 -- [ MAIN TAB ] --
@@ -82,16 +82,14 @@ Tab:CreateButton({
    end,
 })
 
--- [ DETECTOR TAB - TIẾNG ANH ] --
+-- [ DETECTOR TAB ] --
 DetectTab:CreateSection("Bee Scanner Settings")
-
 DetectTab:CreateToggle({
    Name = "Enable Detector",
    CurrentValue = false,
    Flag = "DetectorToggle",
    Callback = function(Value) _G.DetectorEnabled = Value end,
 })
-
 DetectTab:CreateDropdown({
    Name = "Select Normal Bees",
    Options = FullBeeList,
@@ -100,7 +98,6 @@ DetectTab:CreateDropdown({
    Flag = "NormalBeeDrop",
    Callback = function(Options) _G.NormalTargets = Options end,
 })
-
 DetectTab:CreateDropdown({
    Name = "Select Gifted Bees",
    Options = FullBeeList,
@@ -133,67 +130,59 @@ BindTab:CreateKeybind({
    end,
 })
 
--- [ LOGIC CHẠY NGẦM ] --
+-- [[ CORE LOGIC - OPTIMIZED BY GEMINI ]] --
 local RunService = game:GetService("RunService")
 local Player = game.Players.LocalPlayer
+local PromptService = game:GetService("ProximityPromptService")
 
--- Noclip Logic
-RunService.Stepped:Connect(function()
-    if _G.NoclipEnabled and Player.Character then
-        for _, v in pairs(Player.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
+-- 1. Instant Interact (Zero Lag Version)
+PromptService.PromptShown:Connect(function(prompt)
+    if _G.InstantInteractEnabled then
+        prompt.HoldDuration = 0
     end
 end)
 
--- Speed Logic
-RunService.Heartbeat:Connect(function()
-    local char = Player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
+-- 2. Movement Logic (Speed & Noclip Combined)
+RunService.Stepped:Connect(function()
+    if not Player.Character then return end
+    
+    -- Noclip Logic
+    if _G.NoclipEnabled then
+        for _, v in ipairs(Player.Character:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide then 
+                v.CanCollide = false 
+            end
+        end
+    end
+    
+    -- Speed Logic (Heartbeat/Stepped)
+    local root = Player.Character:FindFirstChild("HumanoidRootPart")
+    local hum = Player.Character:FindFirstChild("Humanoid")
     if root and hum and _G.SpeedEnabled and hum.MoveDirection.Magnitude > 0 then
         local vel = hum.MoveDirection * _G.TargetSpeed
         root.AssemblyLinearVelocity = Vector3.new(vel.X, root.AssemblyLinearVelocity.Y, vel.Z)
     end
 end)
 
--- Instant Interact
-task.spawn(function()
-    while task.wait(0.3) do
-        if _G.InstantInteractEnabled then
-            pcall(function()
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then obj.HoldDuration = 0 end
-                end
-            end)
-        end
-    end
-end)
-
--- Bee Detector Logic (The one you requested)
+-- 3. Bee Detector Logic
 workspace.ChildAdded:Connect(function(child)
     if not _G.DetectorEnabled then return end
-    task.wait(0.5) -- Wait for model name to replicate
+    task.wait(0.5)
     
     if child:IsA("Model") then
         local name = child.Name
-        local isTarget = false
-        local isGifted = false
+        local isTarget, isGifted = false, false
 
-        -- Check Normal
-        for _, bee in pairs(_G.NormalTargets) do
-            if name == bee .. " Bee" then
-                isTarget = true
-                break
-            end
+        -- Scan Normal
+        for _, bee in ipairs(_G.NormalTargets) do
+            if name == bee .. " Bee" then isTarget = true break end
         end
 
-        -- Check Gifted
+        -- Scan Gifted
         if not isTarget then
-            for _, bee in pairs(_G.GiftedTargets) do
+            for _, bee in ipairs(_G.GiftedTargets) do
                 if name == "Gifted " .. bee .. " Bee" then
-                    isTarget = true
-                    isGifted = true
+                    isTarget, isGifted = true, true
                     break
                 end
             end
@@ -206,7 +195,6 @@ workspace.ChildAdded:Connect(function(child)
                 Duration = 10,
                 Image = 4483362458,
             })
-            
             local hl = Instance.new("Highlight", child)
             hl.FillColor = isGifted and Color3.new(1, 0.8, 0) or Color3.new(1, 0, 0)
         end
@@ -214,26 +202,3 @@ workspace.ChildAdded:Connect(function(child)
 end)
 
 Rayfield:LoadConfiguration()
-RunService.Heartbeat:Connect(function()
-    local char = Player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
-    if root and hum and _G.SpeedEnabled and hum.MoveDirection.Magnitude > 0 then
-        local vel = hum.MoveDirection * _G.TargetSpeed
-        root.AssemblyLinearVelocity = Vector3.new(vel.X, root.AssemblyLinearVelocity.Y, vel.Z)
-    end
-end)
-
-task.spawn(function()
-    while task.wait(0.3) do
-        if _G.InstantInteractEnabled then
-            pcall(function()
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then obj.HoldDuration = 0 end
-                end
-            end)
-        end
-    end
-end)
-
-Rayfield:LoadConfiguration() 
