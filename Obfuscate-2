@@ -1,0 +1,204 @@
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Elite Hub | V3.1",
+   LoadingTitle = "Elite Hub Loading...",
+   LoadingSubtitle = "by Khanh & Gemini",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "EliteHub_Configs",
+      FileName = "MainConfig"
+   }
+})
+
+-- [[ VARIABLES ]] --
+_G.SpeedEnabled = false
+_G.TargetSpeed = 16
+_G.NoclipEnabled = false
+_G.InstantInteractEnabled = false
+_G.DetectorEnabled = false
+_G.NormalTargets = {}
+_G.GiftedTargets = {}
+
+local FullBeeList = {
+    "Basic", "Bomber", "Brave", "Bumble", "Cool", "Hasty", "Looker", "Rad", "Rascal", "Stubborn", "Tenacious",
+    "Bubble", "Bucko", "Commander", "Demo", "Frosty", "Honey", "Rage", "Riley", "Shocked",
+    "Baby", "Carpenter", "Demon", "Diamond", "Lion", "Music", "Ninja", "Shy",
+    "Buoyant", "Fuzzy", "Precise", "Spicy", "Tadpole", "Vector",
+    "Bear", "Crimson", "Cobalt", "Gummy", "Festive", "Puppy", "Photon", "Tabby", "Vicious", "Windy", "Digital"
+}
+
+-- [[ TABS ]] --
+local Tab = Window:CreateTab("Main", 4483362458)
+local DetectTab = Window:CreateTab("Detector", 4483362458)
+local BindTab = Window:CreateTab("Keybinds", 4483362458)
+
+-- [ MAIN TAB ] --
+Tab:CreateSection("Movement")
+Tab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 300},
+   Increment = 1,
+   CurrentValue = 16,
+   Flag = "SpeedSlider",
+   Callback = function(Value) _G.TargetSpeed = Value end,
+})
+Tab:CreateToggle({
+   Name = "Enable Speed",
+   CurrentValue = false,
+   Flag = "SpeedToggle", 
+   Callback = function(Value) _G.SpeedEnabled = Value end,
+})
+Tab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+   Callback = function(Value) _G.NoclipEnabled = Value end,
+})
+
+Tab:CreateSection("Utility")
+Tab:CreateToggle({
+   Name = "Instant Interact",
+   CurrentValue = false,
+   Flag = "InstantToggle",
+   Callback = function(Value) _G.InstantInteractEnabled = Value end,
+})
+Tab:CreateButton({
+   Name = "Server Hop",
+   Callback = function()
+      local Http = game:GetService("HttpService")
+      local TPS = game:GetService("TeleportService")
+      local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+      local success, result = pcall(function() return game:HttpGet(Api) end)
+      if success then
+          local _S = Http:JSONDecode(result)
+          for _, s in pairs(_S.data) do
+             if s.id ~= game.JobId and tonumber(s.playing) <= tonumber(s.maxPlayers) - 2 then
+                TPS:TeleportToPlaceInstance(game.PlaceId, s.id, game.Players.LocalPlayer)
+                break
+             end
+          end
+      end
+   end,
+})
+
+-- [ DETECTOR TAB ] --
+DetectTab:CreateSection("Bee Scanner Settings")
+DetectTab:CreateToggle({
+   Name = "Enable Detector",
+   CurrentValue = false,
+   Flag = "DetectorToggle",
+   Callback = function(Value) _G.DetectorEnabled = Value end,
+})
+DetectTab:CreateDropdown({
+   Name = "Select Normal Bees",
+   Options = FullBeeList,
+   CurrentOption = {},
+   MultipleOptions = true,
+   Flag = "NormalBeeDrop",
+   Callback = function(Options) _G.NormalTargets = Options end,
+})
+DetectTab:CreateDropdown({
+   Name = "Select Gifted Bees",
+   Options = FullBeeList,
+   CurrentOption = {},
+   MultipleOptions = true,
+   Flag = "GiftedBeeDrop",
+   Callback = function(Options) _G.GiftedTargets = Options end,
+})
+
+-- [ KEYBINDS TAB ] --
+BindTab:CreateSection("Hotkeys")
+BindTab:CreateKeybind({
+   Name = "Toggle Speed (Z)",
+   CurrentKeybind = "Z",
+   HoldToInteract = false,
+   Flag = "KeybindSpeed",
+   Callback = function()
+      _G.SpeedEnabled = not _G.SpeedEnabled
+      Rayfield.Flags.SpeedToggle:Set(_G.SpeedEnabled)
+   end,
+})
+BindTab:CreateKeybind({
+   Name = "Toggle Noclip (X)",
+   CurrentKeybind = "X",
+   HoldToInteract = false,
+   Flag = "KeybindNoclip",
+   Callback = function()
+      _G.NoclipEnabled = not _G.NoclipEnabled
+      Rayfield.Flags.NoclipToggle:Set(_G.NoclipEnabled)
+   end,
+})
+
+-- [[ CORE LOGIC - OPTIMIZED BY GEMINI ]] --
+local RunService = game:GetService("RunService")
+local Player = game.Players.LocalPlayer
+local PromptService = game:GetService("ProximityPromptService")
+
+-- 1. Instant Interact (Zero Lag Version)
+PromptService.PromptShown:Connect(function(prompt)
+    if _G.InstantInteractEnabled then
+        prompt.HoldDuration = 0
+    end
+end)
+
+-- 2. Movement Logic (Speed & Noclip Combined)
+RunService.Stepped:Connect(function()
+    if not Player.Character then return end
+    
+    -- Noclip Logic
+    if _G.NoclipEnabled then
+        for _, v in ipairs(Player.Character:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide then 
+                v.CanCollide = false 
+            end
+        end
+    end
+    
+    -- Speed Logic (Heartbeat/Stepped)
+    local root = Player.Character:FindFirstChild("HumanoidRootPart")
+    local hum = Player.Character:FindFirstChild("Humanoid")
+    if root and hum and _G.SpeedEnabled and hum.MoveDirection.Magnitude > 0 then
+        local vel = hum.MoveDirection * _G.TargetSpeed
+        root.AssemblyLinearVelocity = Vector3.new(vel.X, root.AssemblyLinearVelocity.Y, vel.Z)
+    end
+end)
+
+-- 3. Bee Detector Logic
+workspace.ChildAdded:Connect(function(child)
+    if not _G.DetectorEnabled then return end
+    task.wait(0.5)
+    
+    if child:IsA("Model") then
+        local name = child.Name
+        local isTarget, isGifted = false, false
+
+        -- Scan Normal
+        for _, bee in ipairs(_G.NormalTargets) do
+            if name == bee .. " Bee" then isTarget = true break end
+        end
+
+        -- Scan Gifted
+        if not isTarget then
+            for _, bee in ipairs(_G.GiftedTargets) do
+                if name == "Gifted " .. bee .. " Bee" then
+                    isTarget, isGifted = true, true
+                    break
+                end
+            end
+        end
+
+        if isTarget then
+            Rayfield:Notify({
+                Title = isGifted and "🌟 ELITE ALERT: GIFTED!" or "🐝 ELITE ALERT: BEE FOUND",
+                Content = "Spotted: " .. name .. " in Workspace!",
+                Duration = 10,
+                Image = 4483362458,
+            })
+            local hl = Instance.new("Highlight", child)
+            hl.FillColor = isGifted and Color3.new(1, 0.8, 0) or Color3.new(1, 0, 0)
+        end
+    end
+end)
+
+Rayfield:LoadConfiguration()
