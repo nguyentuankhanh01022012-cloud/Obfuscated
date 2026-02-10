@@ -1,6 +1,6 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "OXYDRA V7 - FINAL",
+   Name = "OXYDRA V1 - The Clown",
    LoadingTitle = "Đang khởi động...",
    ConfigurationSaving = { Enabled = true, Folder = "OxydraConfig" }
 })
