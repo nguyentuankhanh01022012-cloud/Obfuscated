@@ -17,13 +17,10 @@ local function ApplyESP(p)
         if root then
             local h = char:FindFirstChild("OxydraH") or Instance.new("Highlight", char)
             h.Name = "OxydraH"; h.Enabled = ESP_Enabled; h.FillTransparency = 0.5
-            
             local b = root:FindFirstChild("OxydraT") or Instance.new("BillboardGui", root)
             b.Name = "OxydraT"; b.Enabled = ESP_Enabled; b.AlwaysOnTop = true; b.Size = UDim2.new(0,100,0,50); b.ExtentsOffset = Vector3.new(0,-3.8,0)
-            
             local l = b:FindFirstChild("L") or Instance.new("TextLabel", b)
             l.Name = "L"; l.BackgroundTransparency = 1; l.Size = UDim2.new(1,0,1,0); l.Font = Enum.Font.GothamBold; l.TextSize = 14
-            
             local function update()
                 if p.Team then
                     local color = (p.Team.Name == "Clown" and Color3.fromRGB(255,0,0)) or (p.Team.Name == "Victims" and Color3.fromRGB(0,150,255)) or Color3.fromRGB(255,255,255)
@@ -37,7 +34,7 @@ local function ApplyESP(p)
 end
 
 -- Tabs
-local T1 = Window:CreateTab("ESP"); T1:CreateToggle({Name = "Bật ESP", CurrentValue = false, Callback = function(v)
+local T1 = Window:CreateTab("ESP"); T1:CreateToggle({Name = "Bật ESP Team", CurrentValue = false, Callback = function(v)
     ESP_Enabled = v
     for _, p in pairs(game.Players:GetPlayers()) do
         if p.Character then 
@@ -48,7 +45,7 @@ local T1 = Window:CreateTab("ESP"); T1:CreateToggle({Name = "Bật ESP", Current
 end})
 
 local T2 = Window:CreateTab("Combat"); T2:CreateToggle({Name = "Bật Hitbox", Callback = function(v) Hitbox_Enabled = v end})
-T2:CreateSlider({Name = "Size", Range = {10, 50}, Increment = 1, CurrentValue = 10, Callback = function(v) Hitbox_Size = v end})
+T2:CreateSlider({Name = "Kích thước", Range = {10, 50}, Increment = 1, CurrentValue = 10, Callback = function(v) Hitbox_Size = v end})
 
 local T3 = Window:CreateTab("World")
 T3:CreateToggle({Name = "Bật Speed", Callback = function(v) Speed_Enabled = v end})
@@ -57,7 +54,7 @@ T3:CreateToggle({Name = "Noclip Bypass", Callback = function(v)
     Noclip_Enabled = v
     if v then Noclip_Conn = game:GetService("RunService").Stepped:Connect(function()
         if game.Players.LocalPlayer.Character then
-            for _, p in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+            for _, part in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
         end
     end) elseif Noclip_Conn then Noclip_Conn:Disconnect() end
 end})
@@ -65,9 +62,9 @@ T3:CreateToggle({Name = "Full Bright", Callback = function(v) Bright_Enabled = v
 
 local T4 = Window:CreateTab("Script")
 T4:CreateButton({Name = "Fly GUI V3", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-78856"))() end})
-T4:CreateButton({Name = "Vào Victims", Callback = function() local t = game:GetService("Teams"):FindFirstChild("Victims") if t then game.Players.LocalPlayer.Team = t end end})
+T4:CreateButton({Name = "Load Script Github", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/nguyentuankhanh01022012-cloud/Obfuscated/refs/heads/main/Obfuscated-2"))() end})
 
--- Loop
+-- Loop hệ thống
 task.spawn(function()
     while task.wait(0.1) do
         if Hitbox_Enabled then
@@ -75,6 +72,13 @@ task.spawn(function()
                 if p ~= game.Players.LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                     local r = p.Character.HumanoidRootPart
                     r.Size, r.Transparency, r.CanCollide, r.Massless = Vector3.new(Hitbox_Size, Hitbox_Size, Hitbox_Size), 0.6, false, true
+                end
+            end
+        else
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local r = p.Character.HumanoidRootPart
+                    if r.Transparency ~= 1 then r.Size, r.Transparency, r.CanCollide = Vector3.new(2,2,1), 1, true end
                 end
             end
         end
@@ -85,4 +89,4 @@ task.spawn(function()
 end)
 
 for _, p in pairs(game.Players:GetPlayers()) do ApplyESP(p) end
-game.Players.PlayerAdded:Connect(ApplyESP) 
+game.Players.PlayerAdded:Connect(ApplyESP)
