@@ -1,0 +1,88 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "OXYDRA V7 - FINAL",
+   LoadingTitle = "Đang khởi động...",
+   ConfigurationSaving = { Enabled = true, Folder = "OxydraConfig" }
+})
+
+local ESP_Enabled, Hitbox_Enabled, Bright_Enabled, Noclip_Enabled, Speed_Enabled = false, false, false, false, false
+local Hitbox_Size, WalkSpeed_Value, Noclip_Conn = 10, 16, nil
+
+-- Hàm ESP
+local function ApplyESP(p)
+    if p == game.Players.LocalPlayer then return end
+    local function setup()
+        local char = p.Character or p.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart", 5)
+        if root then
+            local h = char:FindFirstChild("OxydraH") or Instance.new("Highlight", char)
+            h.Name = "OxydraH"; h.Enabled = ESP_Enabled; h.FillTransparency = 0.5
+            
+            local b = root:FindFirstChild("OxydraT") or Instance.new("BillboardGui", root)
+            b.Name = "OxydraT"; b.Enabled = ESP_Enabled; b.AlwaysOnTop = true; b.Size = UDim2.new(0,100,0,50); b.ExtentsOffset = Vector3.new(0,-3.8,0)
+            
+            local l = b:FindFirstChild("L") or Instance.new("TextLabel", b)
+            l.Name = "L"; l.BackgroundTransparency = 1; l.Size = UDim2.new(1,0,1,0); l.Font = Enum.Font.GothamBold; l.TextSize = 14
+            
+            local function update()
+                if p.Team then
+                    local color = (p.Team.Name == "Clown" and Color3.fromRGB(255,0,0)) or (p.Team.Name == "Victims" and Color3.fromRGB(0,150,255)) or Color3.fromRGB(255,255,255)
+                    h.FillColor = color; l.TextColor3 = color; l.Text = p.Name
+                end
+            end
+            update(); p:GetPropertyChangedSignal("Team"):Connect(update)
+        end
+    end
+    setup(); p.CharacterAdded:Connect(setup)
+end
+
+-- Tabs
+local T1 = Window:CreateTab("ESP"); T1:CreateToggle({Name = "Bật ESP", CurrentValue = false, Callback = function(v)
+    ESP_Enabled = v
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p.Character then 
+            if p.Character:FindFirstChild("OxydraH") then p.Character.OxydraH.Enabled = v end
+            if p.Character.HumanoidRootPart:FindFirstChild("OxydraT") then p.Character.HumanoidRootPart.OxydraT.Enabled = v end
+        end
+    end
+end})
+
+local T2 = Window:CreateTab("Combat"); T2:CreateToggle({Name = "Bật Hitbox", Callback = function(v) Hitbox_Enabled = v end})
+T2:CreateSlider({Name = "Size", Range = {10, 50}, Increment = 1, CurrentValue = 10, Callback = function(v) Hitbox_Size = v end})
+
+local T3 = Window:CreateTab("World")
+T3:CreateToggle({Name = "Bật Speed", Callback = function(v) Speed_Enabled = v end})
+T3:CreateSlider({Name = "Tốc độ", Range = {16, 250}, Increment = 1, CurrentValue = 16, Callback = function(v) WalkSpeed_Value = v end})
+T3:CreateToggle({Name = "Noclip Bypass", Callback = function(v)
+    Noclip_Enabled = v
+    if v then Noclip_Conn = game:GetService("RunService").Stepped:Connect(function()
+        if game.Players.LocalPlayer.Character then
+            for _, p in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+        end
+    end) elseif Noclip_Conn then Noclip_Conn:Disconnect() end
+end})
+T3:CreateToggle({Name = "Full Bright", Callback = function(v) Bright_Enabled = v end})
+
+local T4 = Window:CreateTab("Script")
+T4:CreateButton({Name = "Fly GUI V3", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-78856"))() end})
+T4:CreateButton({Name = "Vào Victims", Callback = function() local t = game:GetService("Teams"):FindFirstChild("Victims") if t then game.Players.LocalPlayer.Team = t end end})
+
+-- Loop
+task.spawn(function()
+    while task.wait(0.1) do
+        if Hitbox_Enabled then
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p ~= game.Players.LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local r = p.Character.HumanoidRootPart
+                    r.Size, r.Transparency, r.CanCollide, r.Massless = Vector3.new(Hitbox_Size, Hitbox_Size, Hitbox_Size), 0.6, false, true
+                end
+            end
+        end
+        local h = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+        if h and Speed_Enabled then h.WalkSpeed = WalkSpeed_Value end
+        if Bright_Enabled then game:GetService("Lighting").Brightness, game:GetService("Lighting").ClockTime = 2, 14 end
+    end
+end)
+
+for _, p in pairs(game.Players:GetPlayers()) do ApplyESP(p) end
+game.Players.PlayerAdded:Connect(ApplyESP) 
